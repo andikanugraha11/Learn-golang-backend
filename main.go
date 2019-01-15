@@ -1,38 +1,28 @@
 package main
 
 import (
-	"html/template"
+	"Learn-golang-backend/handlers"
+	"Learn-golang-backend/middleware"
 	"log"
 	"net/http"
+	"os"
+
+	ghandlers "github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 )
 
-type Gopher struct {
-	Name string
-}
-
-// handler router
-func helloGopherHandler(w http.ResponseWriter, r *http.Request) {
-	var gopherName string
-	gopherName = r.URL.Query().Get("gophername")
-	if gopherName == "" {
-		gopherName = "Gopher"
-	}
-
-	gopher := Gopher{Name: gopherName}
-
-	renderTemplate(w, "./template/greeting.html", gopher)
-}
-
-// Template rendering functiom
-func renderTemplate(w http.ResponseWriter, templateFile string, templateData interface{}) {
-	t, err := template.ParseFiles(templateFile)
-	if err != nil {
-		log.Fatal("Error whilepassing the template: ", err)
-	}
-	t.Execute(w, templateData)
-}
+// server port
+const (
+	WEBSERVERPORT = ":8080"
+)
 
 func main() {
-	http.HandleFunc("/hello-gopher", helloGopherHandler)
-	http.ListenAndServe(":8080", nil)
+	r := mux.NewRouter()
+	r.HandleFunc("/profile/{username}", handlers.ProfileHandler).Methods("GET")
+	r.HandleFunc("/triggerpanic", handlers.TriggerPanicHandler).Methods("GET")
+
+	// http.Handle("/", r)
+	// http.Handle("/", ghandlers.LoggingHandler(os.Stdout, r))
+	http.Handle("/", middleware.PanicRecoveryHandler(ghandlers.LoggingHandler(os.Stdout, r)))
+	log.Fatal(http.ListenAndServe(WEBSERVERPORT, nil))
 }
